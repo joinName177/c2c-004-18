@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import App from '../App.vue';
 import { LocalPlannerRepository } from '../../adapters/local-planner.repository';
+import type { PackingSnapshot } from '../../core/models';
 
 class MemoryStorage implements Storage {
   private data = new Map<string, string>();
@@ -13,10 +14,12 @@ class MemoryStorage implements Storage {
   setItem(key: string, value: string) { this.data.set(key, value); }
 }
 
-function render() {
+function render(snapshot?: PackingSnapshot) {
   let printCount = 0;
+  const repository = new LocalPlannerRepository(new MemoryStorage());
+  if (snapshot) repository.save(snapshot);
   const wrapper = mount(App, { props: {
-    repository: new LocalPlannerRepository(new MemoryStorage()),
+    repository,
     printPort: { print: () => { printCount += 1; } },
   } });
   return { wrapper, getPrintCount: () => printCount };
@@ -48,6 +51,42 @@ describe('Luggage planner App', () => {
     expect(jacket.length).toBe(2);
     await jacket[0].trigger('click');
     expect(wrapper.findAll('[data-item-id="jacket"].selected')).toHaveLength(2);
+  });
+
+  it('focuses an unplaced reason from a shopping difference without leaving block highlights', async () => {
+    const snapshot: PackingSnapshot = {
+      suitcase: { length: 10, width: 8, height: 6, maxWeight: 10 },
+      selectedPlan: 'comfort',
+      items: [
+        { id: 'same-a', name: '相同名称', category: '衣物', length: 4, width: 2, height: 2, weight: 1, priority: 1, mustHave: false },
+        { id: 'same-b', name: '相同名称', category: '衣物', length: 4, width: 2, height: 2, weight: 1, priority: 1, mustHave: false },
+        { id: 'same-c', name: '相同名称', category: '衣物', length: 4, width: 2, height: 2, weight: 1, priority: 1, mustHave: false },
+        { id: 'heavy-a', name: '重物', category: '衣物', length: 4, width: 2, height: 2, weight: 3, priority: 1, mustHave: false },
+        { id: 'heavy-b', name: '另一件重物', category: '衣物', length: 4, width: 2, height: 2, weight: 3, priority: 1, mustHave: false },
+      ],
+    };
+    const { wrapper } = render(snapshot);
+    const removedId = wrapper.get('[data-comparison-target="shopping"] .diff-row.removed').attributes('data-diff-item');
+
+    await wrapper.get(`[data-comparison-target="shopping"] [data-diff-item="${removedId}"]`).trigger('click');
+
+    expect(wrapper.get('[data-plan="shopping"]').classes()).toContain('active');
+    expect(wrapper.get(`[data-unplaced-item="${removedId}"]`).classes()).toContain('focused');
+    expect(wrapper.findAll('.projection button.selected')).toHaveLength(0);
+  });
+
+  it('hides old differences after inventory changes and shows them after recalculation', async () => {
+    const { wrapper } = render();
+
+    expect(wrapper.find('[data-testid="comparison-grid"]').exists()).toBe(true);
+    await wrapper.get('[aria-label="物品名称"]').setValue('新物品');
+    await wrapper.get('[data-testid="item-editor"]').trigger('submit');
+
+    expect(wrapper.find('[data-testid="comparison-grid"]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="comparison-stale"]').text()).toContain('重新计算');
+
+    await wrapper.get('.header-actions .primary').trigger('click');
+    expect(wrapper.find('[data-testid="comparison-grid"]').exists()).toBe(true);
   });
 
   it('delegates printing through the print port', async () => {

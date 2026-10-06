@@ -49,11 +49,11 @@ export function packItems(suitcase: Suitcase, items: PackingItem[], mode: PlanMo
       continue;
     }
     if (totalWeight + item.weight > maxWeight) {
-      unplaced.push({ item, reason: '超过当前方案承重预留' });
+      unplaced.push({ item, reason: `超过当前方案承重预留（上限 ${maxWeight.toFixed(1)} kg，已装 ${totalWeight.toFixed(1)} kg）` });
       continue;
     }
     if (usedVolume + itemVolume(item) > capacity) {
-      unplaced.push({ item, reason: '超过当前方案空间预留' });
+      unplaced.push({ item, reason: `超过当前方案空间预留（上限 ${capacity.toFixed(0)} cm³，已用 ${usedVolume.toFixed(0)} cm³）` });
       continue;
     }
 
@@ -87,6 +87,7 @@ export function packItems(suitcase: Suitcase, items: PackingItem[], mode: PlanMo
     placements,
     unplaced,
     totalWeight,
+    weightLimit: maxWeight,
     usedVolume,
     capacityRatio: suitcaseVolume(suitcase) ? usedVolume / suitcaseVolume(suitcase) : 0,
   };

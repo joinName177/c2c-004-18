@@ -27,11 +27,40 @@ export interface Placement {
 export interface PackingPlan {
   id: PlanMode;
   name: string;
+  generationId?: string;
   placements: Placement[];
   unplaced: Array<{ item: PackingItem; reason: string }>;
   totalWeight: number;
+  weightLimit: number;
   usedVolume: number;
   capacityRatio: number;
+}
+
+export interface GeneratedPlanSet {
+  generationId: string;
+  plans: Record<PlanMode, PackingPlan>;
+}
+
+export type PlanDiffStatus = 'added' | 'removed' | 'moved';
+
+export interface PlanItemDiff {
+  item: PackingItem;
+  status: PlanDiffStatus;
+  baselinePlacement?: Placement;
+  targetPlacement?: Placement;
+  baselineReason?: string;
+  targetReason?: string;
+}
+
+export interface PlanComparison {
+  baselineId: PlanMode;
+  targetId: PlanMode;
+  generationId: string;
+  items: PlanItemDiff[];
+  baselineWeightMargin: number;
+  targetWeightMargin: number;
+  weightMarginDelta: number;
+  counts: Record<PlanDiffStatus, number>;
 }
 
 export interface Risk {

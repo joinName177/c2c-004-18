@@ -4,7 +4,7 @@ import type { PackingItem, PackingPlan, Suitcase } from '../models';
 
 const suitcase: Suitcase = { length: 10, width: 8, height: 6, maxWeight: 10 };
 const item = (id: string, overrides: Partial<PackingItem> = {}): PackingItem => ({ id, name: id, category: '其他', length: 2, width: 2, height: 2, weight: 1, priority: 2, mustHave: false, ...overrides });
-const basePlan = (): PackingPlan => ({ id: 'comfort', name: '舒适版', placements: [], unplaced: [], totalWeight: 0, usedVolume: 0, capacityRatio: 0 });
+const basePlan = (): PackingPlan => ({ id: 'comfort', name: '舒适版', placements: [], unplaced: [], totalWeight: 0, weightLimit: suitcase.maxWeight, usedVolume: 0, capacityRatio: 0 });
 
 describe('detectRisks', () => {
   it('reports overweight and high volume', () => {
